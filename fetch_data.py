@@ -30,7 +30,7 @@ try:
     print("Data injected into f1_sim.db successfully.")
 
 except Exception as e:
-    print(f"--- ERROR ---")
+    print("--- ERROR ---")
     print(f"Something went wrong: {e}")
 
 #
