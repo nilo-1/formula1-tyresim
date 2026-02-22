@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <cmath>
 #include <sqlite3.h>
-#include "time.h" // Your custom time header
+#include "time.h"
 
 // --- PHYSICS RULESETS ---
 double mediumRuleset(int lap, double base) {
