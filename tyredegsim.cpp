@@ -56,8 +56,8 @@ for (int i = 1; i <= totalLaps; i++) {
               << "s | Cliff: +" << thermalCliff << "s]";
 
     // 3-SECOND WARNING SYSTEM 
-    if (Laptime > (firstLaptime + 3.0)) { // Changed to 3.0 to match your comment
-        std::cout << " [!!! PIT NOW !!!]";
+    if (Laptime > (firstLaptime + 1.0)) { // Changed to 3.0 to match your comment
+        std::cout << " [!]";
     }
     
     std::cout << std::endl;
