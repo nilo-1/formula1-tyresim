@@ -32,7 +32,7 @@ for (int i = 1; i <= totalLaps; i++) {
     double thermalCliff = std::pow((double)i / lifeLimit, 12);
     
     // The "Fuel Gain": Car gets 0.07s faster every lap as it gets lighter.
-    double fuelGain = i * 0.07; 
+    double fuelGain = i * 0.035; 
 
     // The "Warm-up Penalty": Cold tires on Lap 1/2.
     double warmUpPenalty = 0.0;
