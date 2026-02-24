@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 using namespace std;
 #include <cmath> 
+#include <iomanip>
 
 int Loopingcount(double track_temp) {
     double Laptime, firstLaptime, totalStintTime = 0;
@@ -25,42 +26,43 @@ int Loopingcount(double track_temp) {
     cout << "Enter base laptime (e.g., 120): ";
     cin >> baseLaptime;
 
-   for (int i = 1; i <= totalLaps; i++) {
-    // 1. Physics enginee
-    // The "Cliff": Exponential increase as tyres hit the lifeLimit
-    double thermalCliff = std::pow((i / lifeLimit), 12);
+for (int i = 1; i <= totalLaps; i++) {
+    // 1. PHYSICS ENGINE
+    // The "Cliff": Penalty stays tiny until i reaches lifeLimit, then explodes.
+    double thermalCliff = std::pow((double)i / lifeLimit, 12);
     
-    // The "Fuel Gain": Car gets 0.07s faster every lap as it gets lighter
+    // The "Fuel Gain": Car gets 0.07s faster every lap as it gets lighter.
     double fuelGain = i * 0.07; 
 
-    // The "Warm-up Penalty": Lap 1 is very cold, Lap 2 is getting there, Lap 3+ is optimal
+    // The "Warm-up Penalty": Cold tires on Lap 1/2.
     double warmUpPenalty = 0.0;
     if (i == 1) {
-        warmUpPenalty = 1.1; // 1.2s penalty for cold tires
+        warmUpPenalty = 1.1; 
     } else if (i == 2) {
-        warmUpPenalty = 0.2; // 0.4s penalty as they bleed heat in
+        warmUpPenalty = 0.2; 
     }
 
-    // 2. THE CALCULATION
-    // Base Time + Penalty (Slows you down) - Fuel Gain (Speeds you up) + Cliff (Slows you down)
+    // 2. THE CALCULATION (The Tug-of-War)
     Laptime = baseLaptime + warmUpPenalty - fuelGain + thermalCliff;
 
-    // 3. BENCHMARKING & WARNINGS
+    // 3. TELEMETRY OUTPUT (Solves "Understanding the logic")
     if (i == 1) firstLaptime = Laptime;
 
-    std::cout << "Lap " << i << ": ";
+    std::cout << "Lap " << setw(2) << i << ": ";
     timeFormat(Laptime);
     
+    // Show the hidden math so you can see why the time changed
+    cout << " [Fuel: -" << std::fixed << setprecision(2) << fuelGain 
+              << "s | Cliff: +" << thermalCliff << "s]";
+
     // 3-SECOND WARNING SYSTEM 
-    // Triggers when the cliff makes the car 3s slower than the initial Lap 1 pace
-    if (Laptime > (firstLaptime + 1.0)) {
-        cout << " [!]";
+    if (Laptime > (firstLaptime + 3.0)) { // Changed to 3.0 to match your comment
+        std::cout << " [!!! PIT NOW !!!]";
     }
     
     std::cout << std::endl;
     totalStintTime += Laptime;
 }
-
     return 0;
 }
 
