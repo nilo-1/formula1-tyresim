@@ -36,6 +36,24 @@ If you prefer to run the components individually:
 
 VS Code Build ShortcutShortcut: Ctrl + Shift + B
 
+How to configure the Build Shortcut:
+
+Open Tasks: Press Ctrl + Shift + P and type Tasks: Configure Default Build Task.
+
+Select Compiler: Choose C/C++: g++.exe build active file.
+
+Enable Multi-file Support: VS Code defaults to compiling only the open file. To fix this for the F1 Sim, update your tasks.json by changing the ${file} argument to include all .cpp files and link SQLite:
+
+JSON
+"args": [
+    "-fdiagnostics-color=always",
+    "-g",
+    "${fileDirname}/*.cpp", // Compiles tyredegsim.cpp AND time.cpp
+    "-o",
+    "${fileDirname}/f1sim.exe",
+    "-lsqlite3"              // Links the database library
+],
+
 Configuration: The project is set up to link time.cpp and tyredegsim.cpp automatically.
 
 Task Setup: Ensure tasks.json uses ${fileDirname}/*.cpp in the args section to support multi-file compilation.
