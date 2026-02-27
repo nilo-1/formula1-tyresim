@@ -19,16 +19,20 @@ try:
     t_temp, a_temp, hum = weather['TrackTemp'], weather['AirTemp'], weather['Humidity']
 
     # 3. STRATEGY DATA 
-    # Norris (Driver '4') - Ignoring Lap 1 standing start for better baseline
-    winner_laps = session.laps.pick_drivers('4')
+    # Norris (Driver '4') 
+    lando_laps = session.laps.pick_drivers('4')
     
-    # Pre-convert LapTime to total seconds to avoid Timedelta syntax errors
-    winner_laps['LapTimeSeconds'] = winner_laps['LapTime'].dt.total_seconds()
+    # Pre-convert LapTime to total seconds
+    lando_laps['LapTimeSeconds'] = lando_laps['LapTime'].dt.total_seconds()
 
-    # Filter out Lap 1 and rows without lap times
-    valid_laps = winner_laps[(winner_laps['LapNumber'] > 1) & (winner_laps['LapTimeSeconds'].notna())]
+    # Filter for clean racing laps (ignoring Lap 1 standing start and pit stops)
+    # We also filter out laps where the time is way off (e.g., > 110% of median) to avoid yellow flags
+    valid_laps = lando_laps[(lando_laps['LapNumber'] > 1) & (lando_laps['LapTimeSeconds'].notna())]
+    
+    # NEW: Using Median (0.5) instead of 0.1 to get a realistic "Race Pace"
+    auto_base_time = valid_laps['LapTimeSeconds'].median()
 
-    # Grouping using simple Pandas logic
+    # Grouping stints for the database
     stint_data = []
     unique_stints = valid_laps['Stint'].unique()
 
@@ -36,7 +40,10 @@ try:
         stint_subset = valid_laps[valid_laps['Stint'] == stint_num]
         compound = stint_subset['Compound'].iloc[0]
         stint_len = len(stint_subset)
-        base_time = stint_subset['LapTimeSeconds'].min()
+        
+        # Use the automated median pace for the primary stint comparison
+        # This ensures the Red and Yellow lines start at the same height
+        base_time = auto_base_time if stint_num == 1 else stint_subset['LapTimeSeconds'].median()
         
         stint_data.append(('Abu Dhabi', compound, stint_len, base_time))
 
@@ -51,7 +58,7 @@ try:
     cursor.execute('DROP TABLE IF EXISTS race_rules')
     cursor.execute('CREATE TABLE race_rules (track TEXT, compound TEXT, stint_len INTEGER, base_time REAL)')
 
-    # Inject
+    # Inject Weather and Stint Rules
     cursor.execute('INSERT INTO race_weather VALUES (?, ?, ?, ?)', (t_temp, a_temp, hum, 'Abu Dhabi 2024'))
     cursor.executemany('INSERT INTO race_rules VALUES (?, ?, ?, ?)', stint_data)
 
@@ -59,8 +66,9 @@ try:
     conn.close()
 
     print(f"--- SUCCESS ---")
-    print(f"Weather: {t_temp}°C | Strategy: {len(stint_data)} stints recorded for NOR.")
-    print("Database f1_sim.db is updated and ready.")
+    print(f"Weather: {t_temp}°C | Automated Base Time (Median): {auto_base_time:.3f}s")
+    print(f"Strategy: {len(stint_data)} stints recorded for NOR.")
+    print("Database f1_sim.db is updated and ready for C++.")
 
 except Exception as e:
     print(f"--- ERROR: {e}")

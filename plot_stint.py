@@ -71,5 +71,11 @@ for ax in [ax1, ax2, ax3]:
     ax.grid(color='gray', linestyle=':', alpha=0.3)
     ax.set_ylabel("Lap Time (s)")
 
+# Create a smoothed version of Lando's times (3-lap rolling average)
+lando_smooth = real_time_clean.rolling(window=3, center=True).mean()
+
+# Plot the smooth line instead of the jagged one
+ax3.plot(real_lap_clean, lando_smooth, color='#FFFF00', label='Lando (Smoothed)', linewidth=2)
+
 print(f"🏎️ Dashboard Updated. Scaling from Lap 2 to {n_laps} | Y-Range: {y_min:.1f}s - {y_max:.1f}s")
 plt.show()

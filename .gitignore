@@ -40,3 +40,11 @@
 # debug information files
 *.dwo
 .vscode/
+
+ # F1 Data and Cache
+f1_cache/
+f1_sim.db
+
+# Compiled Binaries
+*.exe
+sandbox/
