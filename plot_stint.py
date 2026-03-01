@@ -15,33 +15,38 @@ real_laps['LapTimeSeconds'] = real_laps['LapTime'].dt.total_seconds()
 # Clean slice for one-point alignment
 real_stint = real_laps[real_laps['Stint'] == 1].iloc[3:]
 
-# 2. PLOT SETUP (3 Subplots)
+# 2. PLOT SETUP (Asymmetric Grid)
 plt.style.use('dark_background')
-fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 15))
-plt.subplots_adjust(hspace=0.4)
+fig = plt.figure(figsize=(14, 10))
 
-# --- GRAPH 1: OUR PROJECTION ---
+# --- GRAPH 1: TOP LEFT (Simulation) ---
+ax1 = plt.subplot2grid((2, 2), (0, 0))
 ax1.plot(range(len(sim_df)), sim_df['lap_time'], color='red', linewidth=2.5)
-ax1.set_title("1. Physics Simulation Projection", color='red', fontweight='bold')
+ax1.set_title("1. OUR PROJECTION", color='red', fontweight='bold')
 ax1.set_ylabel("Lap Time (s)")
 ax1.set_ylim(87, 93)
 ax1.grid(alpha=0.2)
 
-# --- GRAPH 2: LANDO'S REAL TIME ---
+# --- GRAPH 2: TOP RIGHT (Lando Real) ---
+ax2 = plt.subplot2grid((2, 2), (0, 1))
 ax2.plot(range(len(real_stint)), real_stint['LapTimeSeconds'], color='gold', linewidth=2.5)
-ax2.set_title("2. Lando Norris Real Telemetry", color='gold', fontweight='bold')
+ax2.set_title("2. LANDO REAL TELEMETRY", color='gold', fontweight='bold')
 ax2.set_ylabel("Lap Time (s)")
 ax2.set_ylim(87, 93)
 ax2.grid(alpha=0.2)
 
-# --- GRAPH 3: THE OVERLAP ---
+# --- GRAPH 3: BOTTOM SPAN (The Overlap) ---
+# colspan=2 makes this graph take up the full width of the bottom row
+ax3 = plt.subplot2grid((2, 2), (1, 0), colspan=2)
 ax3.plot(range(len(real_stint)), real_stint['LapTimeSeconds'], color='gold', label='Lando', linewidth=2.5)
-ax3.plot(range(len(sim_df)), sim_df['lap_time'], color='red', label='Sim', linewidth=2.5) # Solid line now
-ax3.set_title("3. Strategy Overlay", fontweight='bold')
+ax3.plot(range(len(sim_df)), sim_df['lap_time'], color='red', label='Sim', linewidth=2.5)
+ax3.set_title("3. STRATEGY OVERLAP", fontweight='bold')
 ax3.set_xlabel("Laps into Stint")
 ax3.set_ylabel("Lap Time (s)")
 ax3.set_ylim(87, 93)
 ax3.legend()
 ax3.grid(alpha=0.2)
 
+# Adjust layout to prevent title/label overlap
+plt.tight_layout(pad=4.0)
 plt.show()
