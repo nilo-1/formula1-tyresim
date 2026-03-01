@@ -49,4 +49,4 @@ ax3.grid(alpha=0.2)
 
 # Adjust layout to prevent title/label overlap
 plt.tight_layout(pad=4.0)
-plt.show()
+plt.show()  
