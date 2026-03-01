@@ -1,81 +1,47 @@
-import matplotlib.pyplot as plt
 import sqlite3
 import pandas as pd
+import matplotlib.pyplot as plt
 import fastf1
 
-# --- 1. DATA COLLECTION ---
-fastf1.Cache.enable_cache('f1_cache')
-session = fastf1.get_session(2024, 'Abu Dhabi', 'R')
-session.load()
-
-# Lando (Driver 4) - Stint 1
-lando_laps = session.laps.pick_drivers('4')
-lando_laps = lando_laps[lando_laps['Stint'] == 1]
-real_times = lando_laps['LapTime'].dt.total_seconds()
-real_lap_nums = lando_laps['LapNumber']
-
-# Connect to the Bridge DB
+# 1. LOAD DATA
 conn = sqlite3.connect('f1_sim.db')
-try:
-    proj_df = pd.read_sql_query("SELECT lap, lap_time FROM simulation_results", conn)
-except (pd.errors.DatabaseError, sqlite3.OperationalError):
-    print("❌ ERROR: 'simulation_results' table not found. Run ./f1sim.exe first!")
-    conn.close()
-    exit()
-conn.close()
+sim_df = pd.read_sql_query("SELECT * FROM simulation_results", conn)
 
-# --- 2. SMART SCALING & ALIGNMENT ---
-# Slicing data from index 1 onwards to eliminate the Lap 1 standing start
-# This prevents the Y-axis from zooming out to 130s+ 
-proj_lap_clean = proj_df['lap'][1:]
-proj_time_clean = proj_df['lap_time'][1:]
-real_lap_clean = real_lap_nums[1:]
-real_time_clean = real_times[1:]
+session = fastf1.get_session(2024, 'Abu Dhabi', 'R')
+session.load(telemetry=False, weather=False)
+real_laps = session.laps.pick_drivers('4')
+real_laps['LapTimeSeconds'] = real_laps['LapTime'].dt.total_seconds()
 
-# Calculate zoom based on the average racing pace (ignoring the spike)
-base_ref = real_time_clean.mean() if not real_time_clean.empty else 89.0
-y_min, y_max = base_ref - 3, base_ref + 3  # Tight ±3s window
+# Clean slice for one-point alignment
+real_stint = real_laps[real_laps['Stint'] == 1].iloc[3:]
 
-# Determine the final lap N for the X-axis
-n_laps = int(max(real_lap_nums.max(), proj_df['lap'].max()))
-
-# --- 3. THE DASHBOARD ---
+# 2. PLOT SETUP (3 Subplots)
 plt.style.use('dark_background')
-fig = plt.figure(figsize=(16, 9))
-gs = fig.add_gridspec(2, 2)
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 15))
+plt.subplots_adjust(hspace=0.4)
 
-# Maximize screen real estate
-fig.subplots_adjust(left=0.06, right=0.98, top=0.94, bottom=0.08, hspace=0.3, wspace=0.15)
+# --- GRAPH 1: OUR PROJECTION ---
+ax1.plot(range(len(sim_df)), sim_df['lap_time'], color='red', linewidth=2.5)
+ax1.set_title("1. Physics Simulation Projection", color='red', fontweight='bold')
+ax1.set_ylabel("Lap Time (s)")
+ax1.set_ylim(87, 93)
+ax1.grid(alpha=0.2)
 
-# Subplot 1: C++ Projection
-ax1 = fig.add_subplot(gs[0, 0])
-ax1.plot(proj_lap_clean, proj_time_clean, color='#FF0000', linewidth=2)
-ax1.set_title("OUR PROJECTION (LAP 2+)", color='red', fontweight='bold')
+# --- GRAPH 2: LANDO'S REAL TIME ---
+ax2.plot(range(len(real_stint)), real_stint['LapTimeSeconds'], color='gold', linewidth=2.5)
+ax2.set_title("2. Lando Norris Real Telemetry", color='gold', fontweight='bold')
+ax2.set_ylabel("Lap Time (s)")
+ax2.set_ylim(87, 93)
+ax2.grid(alpha=0.2)
 
-# Subplot 2: Lando's Real Stint
-ax2 = fig.add_subplot(gs[0, 1])
-ax2.plot(real_lap_clean, real_time_clean, color='#FFFF00', linewidth=2)
-ax2.set_title("LANDO REAL STINT (LAP 2+)", color='yellow', fontweight='bold')
+# --- GRAPH 3: THE OVERLAP ---
+ax3.plot(range(len(real_stint)), real_stint['LapTimeSeconds'], color='gold', label='Lando', linewidth=2.5)
+ax3.plot(range(len(sim_df)), sim_df['lap_time'], color='red', label='Sim', linewidth=2.5) # Solid line now
+ax3.set_title("3. Strategy Overlay", fontweight='bold')
+ax3.set_xlabel("Laps into Stint")
+ax3.set_ylabel("Lap Time (s)")
+ax3.set_ylim(87, 93)
+ax3.legend()
+ax3.grid(alpha=0.2)
 
-# Subplot 3: Comparison Overlay
-ax3 = fig.add_subplot(gs[1, :])
-ax3.plot(proj_lap_clean, proj_time_clean, color='#FF0000', label='Sim Projection', alpha=0.9)
-ax3.plot(real_lap_clean, real_time_clean, color='#FFFF00', label='Lando Real', alpha=0.7)
-ax3.set_title("STRATEGY OVERLAY", color='white', fontweight='bold')
-ax3.legend(loc='upper left', frameon=True, facecolor='black', edgecolor='white')
-
-# --- 4. APPLY X (2 to N) AND Y (±3s) SCALING ---
-for ax in [ax1, ax2, ax3]:
-    ax.set_xlim(2, n_laps) # X-axis from 2 to N
-    ax.set_ylim(y_min, y_max) # Y-axis focused on racing pace
-    ax.grid(color='gray', linestyle=':', alpha=0.3)
-    ax.set_ylabel("Lap Time (s)")
-
-# Create a smoothed version of Lando's times (3-lap rolling average)
-lando_smooth = real_time_clean.rolling(window=3, center=True).mean()
-
-# Plot the smooth line instead of the jagged one
-ax3.plot(real_lap_clean, lando_smooth, color='#FFFF00', label='Lando (Smoothed)', linewidth=2)
-
-print(f"🏎️ Dashboard Updated. Scaling from Lap 2 to {n_laps} | Y-Range: {y_min:.1f}s - {y_max:.1f}s")
 plt.show()
